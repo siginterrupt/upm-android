@@ -4,67 +4,67 @@
           android:versionCode="23"
           android:versionName="1.18">
 
-    <uses-permission android:name="android.permission.INTERNET"></uses-permission>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
-    <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="26"/>
-
-    <application android:icon="@drawable/upm" 
+    <application android:icon="@drawable/upm"
                  android:label="@string/app_name_short"
                  android:name="UPMApplication"
                  android:backupAgent=".UPMBackupAgent"
-                 android:allowBackup="true">
+                 android:allowBackup="true"
+        android:requestLegacyExternalStorage="true">
 
         <meta-data android:name="com.google.android.backup.api_key"
             android:value="AEdPqrEAAAAIdH-Kshc9o3yIinx_ZyTF-Cs8t9SIFljMNICcsw"/>
 
-        <activity android:name=".AppEntryActivity">
+        <activity android:name=".AppEntryActivity"  android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <activity android:name=".EnterMasterPassword">
+        <activity android:name=".EnterMasterPassword" android:exported="true">
         </activity>
 
-        <activity android:name=".FullAccountList">
+        <activity android:name=".FullAccountList" android:exported="true">
             <meta-data android:name="android.app.default_searchable"
                        android:value=".SearchResults" />
         </activity>
 
-        <activity android:name=".ViewAccountDetails">
+        <activity android:name=".ViewAccountDetails" android:exported="true">
         </activity>
 
-        <activity android:name=".CreateNewDatabase">
+        <activity android:name=".CreateNewDatabase" android:exported="true">
         </activity>
 
-        <activity android:name=".AddEditAccount">
+        <activity android:name=".AddEditAccount" android:exported="true">
         </activity>
 
-        <activity android:name=".ChangeMasterPassword">
+        <activity android:name=".ChangeMasterPassword" android:exported="true">
         </activity>
 
-        <activity android:name=".DownloadRemoteDatabase"
+        <activity android:name=".DownloadRemoteDatabase" android:exported="true"
                   android:label="@string/download_remote_database">
         </activity>
 
-        <activity android:name=".SelectDatabaseFromDropboxActivity"
+        <activity android:name=".SelectDatabaseFromDropboxActivity" android:exported="true"
                   android:label="@string/dropbox_files">
         </activity>
 
-        <activity android:name=".SyncDatabaseViaHttpActivity"
+        <activity android:name=".SyncDatabaseViaHttpActivity" android:exported="true"
                   android:theme="@style/Theme.Transparent">
         </activity>
 
-        <activity android:name=".SyncDatabaseViaDropboxActivity"
+        <activity android:name=".SyncDatabaseViaDropboxActivity" android:exported="true"
                   android:theme="@style/Theme.Transparent">
         </activity>
 
         <activity android:name=".SearchResults"
                   android:label="@string/search_results"
                   android:launchMode="singleTop"
-                  android:exported="false">
+                  android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH"/>
             </intent-filter>
@@ -73,11 +73,12 @@
                        android:resource="@xml/searchable"/>
         </activity>
 
-        <activity android:name=".Prefs" android:label="@string/settings_title"/>
+        <activity android:name=".Prefs" android:label="@string/settings_title" android:exported="true"/>
 
         <activity android:name="com.dropbox.core.android.AuthActivity"
                   android:launchMode="singleTask"
-                  android:configChanges="orientation|keyboard">
+                  android:configChanges="orientation|keyboard"
+            android:exported="true">
             <intent-filter>
                 <data android:scheme="db-qkpfz3ar30aozp0" />
                 <action android:name="android.intent.action.VIEW" />

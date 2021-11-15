@@ -22,13 +22,18 @@ package com.u17od.upm;
 
 import java.io.File;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -47,6 +52,17 @@ public class AppEntryActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // has access to storage?
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int access = checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (access != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,},
+                        0);
+            }
+        }
 
         if (databaseFileExists()) {
             // If databaseFileToDecrypt is null then UPM is just starting so

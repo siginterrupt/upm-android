@@ -98,7 +98,7 @@ public class UPMApplication extends Application {
             successful=true;
         } catch (IOException e) {
             Log.e(activity.getClass().getName(), getString(R.string.file_problem), e);
-            Toast.makeText(activity, R.string.file_problem, Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, getString(R.string.file_problem) + "\r\n" + e.getMessage(), Toast.LENGTH_LONG).show();
         } finally {
             try {
                 if (sourceChannel != null) {

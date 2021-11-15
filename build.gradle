@@ -1,16 +1,16 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.4'
+        classpath 'com.android.tools.build:gradle:7.0.3'
     }
 }
 
 repositories {
     google()
-    jcenter()
+    mavenCentral()
     mavenLocal()
 }
 
@@ -18,13 +18,13 @@ apply plugin: 'com.android.application'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: '*.jar')
-    implementation 'com.dropbox.core:dropbox-core-sdk:3.0.4'
-    implementation 'com.squareup.okhttp3:okhttp:3.5.0'
+    implementation 'com.dropbox.core:dropbox-core-sdk:5.0.0'
+    implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.2'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
 }
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 31
 
     sourceSets {
         main {
@@ -49,4 +49,10 @@ android {
         debug.setRoot('build-types/debug')
         release.setRoot('build-types/release')
     }
+    defaultConfig {
+        targetSdkVersion 31
+        minSdkVersion 14
+        multiDexEnabled true
+    }
+    buildToolsVersion '30.0.2'
 }
