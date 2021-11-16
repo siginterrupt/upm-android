@@ -20,13 +20,9 @@
  */
 package com.u17od.upm;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -37,23 +33,62 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricPrompt;
+
 import com.u17od.upm.crypto.InvalidPasswordException;
 import com.u17od.upm.database.PasswordDatabase;
 import com.u17od.upm.database.ProblemReadingDatabaseFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.concurrent.Executor;
 
 /**
  * This Activity is responsible for prompting the user to enter their master
  * password and then decrypting the database. If the correct password is entered
  * then the AccountList Activity is loaded.
  */
-public class EnterMasterPassword extends Activity implements OnClickListener {
+public class EnterMasterPassword extends AppCompatActivity implements OnClickListener {
 
     public static PasswordDatabase decryptedPasswordDatabase;
     public static File databaseFileToDecrypt;
 
+    private Button okButton;
     private EditText passwordField;
     private DecryptDatabase decryptDatabaseTask;
     private ProgressDialog progressDialog;
+
+    private BiometricPrompt getPromptForActivity(EnterMasterPassword activity){
+        Executor executor = getMainExecutor();
+        BiometricPrompt.AuthenticationCallback callback = new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                Toast.makeText(EnterMasterPassword.this, "Authentication Error " + errString, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                String password = Utilities.getPassword(activity);
+                passwordField.setText(password);
+//                okButton.callOnClick();
+                openDatabase();
+            }
+
+            @Override
+            public void onAuthenticationFailed() {
+                super.onAuthenticationFailed();
+                Toast.makeText(EnterMasterPassword.this, "Authentication Failed", Toast.LENGTH_LONG).show();
+            }
+        };
+
+        BiometricPrompt biometricPrompt = new BiometricPrompt(this, executor, callback);
+        return biometricPrompt;
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -65,7 +100,7 @@ public class EnterMasterPassword extends Activity implements OnClickListener {
         passwordField.setText(null);
 
         // Make this class the listener for the click event on the OK button
-        Button okButton = (Button) findViewById(R.id.master_password_open_button);
+        okButton = (Button) findViewById(R.id.master_password_open_button);
         okButton.setOnClickListener(this);
 
         passwordField.setOnKeyListener(new OnKeyListener() {
@@ -91,6 +126,21 @@ public class EnterMasterPassword extends Activity implements OnClickListener {
                         this.getString(R.string.decrypting_db));
             }
         }
+
+        // Use fingerprint if available and enabled
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Boolean fingerEnabled = Utilities.isFingerprintEnabled(this);
+            String password = Utilities.getPassword(this);
+            if (fingerEnabled && password != null && !password.isEmpty()) {
+                BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle("UPM Authentication")
+                        .setDescription("Use your fingerprint to open")
+                        .setNegativeButtonText("Cancel")
+                        .build();
+
+                getPromptForActivity(this).authenticate(promptInfo);
+            }
+        }
     }
 
     public ProgressDialog getProgressDialog() {
@@ -101,6 +151,12 @@ public class EnterMasterPassword extends Activity implements OnClickListener {
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.master_password_open_button:
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    if(Utilities.isFingerprintEnabled(this)) {
+                        String password = getPasswordField().getText().toString();
+                        Utilities.savePassword(this, password);
+                    }
+                }
                 openDatabase();
                 break;
         }
@@ -116,16 +172,6 @@ public class EnterMasterPassword extends Activity implements OnClickListener {
         if (progressDialog != null) {
             progressDialog.dismiss();
         }
-    }
-
-    @Override
-    public Object onRetainNonConfigurationInstance () {
-        // Disassociate the background task from the activity. A new one will
-        // be created imminently.
-        if (decryptDatabaseTask != null) {
-            decryptDatabaseTask.setActivity(null);
-        }
-        return decryptDatabaseTask;
     }
 
     private void openDatabase() {
@@ -216,6 +262,12 @@ public class EnterMasterPassword extends Activity implements OnClickListener {
                     UIUtilities.showToast(activity, message, true);
                     break;
                 default :
+                    if(Utilities.isFingerprintEnabled(activity)) {
+                        Utilities.savePassword(activity, activity.getPasswordField().getText().toString());
+                    } else {
+                        Utilities.savePassword(activity, "");
+                    }
+
                     activity.setResult(RESULT_OK);
                     activity.finish();
                     break;
@@ -225,7 +277,6 @@ public class EnterMasterPassword extends Activity implements OnClickListener {
         private void setActivity(EnterMasterPassword activity) {
             this.activity = activity;
         }
-
     }
 
 }

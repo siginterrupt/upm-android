@@ -34,10 +34,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.u17od.upm.database.AccountInformation;
 import com.u17od.upm.database.PasswordDatabase;
 
-public class AddEditAccount extends Activity implements OnClickListener {
+public class AddEditAccount extends AppCompatActivity implements OnClickListener {
 
     private static final int GENERIC_ERROR_DIALOG = 1;
 
@@ -132,6 +134,7 @@ public class AddEditAccount extends Activity implements OnClickListener {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
         /*
          * If the database was successfully opened then make it available
          * on the Application

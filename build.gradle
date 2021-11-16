@@ -21,6 +21,8 @@ dependencies {
     implementation 'com.dropbox.core:dropbox-core-sdk:5.0.0'
     implementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.2'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'com.google.android.material:material:1.5.0-beta01'
 }
 
 android {
@@ -51,7 +53,7 @@ android {
     }
     defaultConfig {
         targetSdkVersion 31
-        minSdkVersion 14
+        minSdkVersion 28
         multiDexEnabled true
     }
     buildToolsVersion '30.0.2'

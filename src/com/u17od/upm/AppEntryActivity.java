@@ -25,22 +25,27 @@ import java.io.File;
 import android.Manifest;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
+
+import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Toast;
 
 public class AppEntryActivity extends Activity {
-
     private static final int NEW_DATABASE_DIALOG = 1;
 
     private static final int REQ_CODE_ENTER_PASSWORD = 0;
@@ -53,16 +58,7 @@ public class AppEntryActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // has access to storage?
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int access = checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            if (access != PackageManager.PERMISSION_GRANTED) {
 
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,},
-                        0);
-            }
-        }
 
         if (databaseFileExists()) {
             // If databaseFileToDecrypt is null then UPM is just starting so
@@ -201,6 +197,49 @@ public class AppEntryActivity extends Activity {
 
     private boolean databaseFileExists() {
         return Utilities.getDatabaseFile(this).exists();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // has access to storage? verify
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
+            File filepath = Environment.getExternalStorageDirectory();
+            if(!Environment.isExternalStorageManager(filepath)) {
+                showPermissionDialog();
+            }
+        } else {
+            int access = checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (access != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,},
+                        0);
+            }
+        }
+    }
+
+    private void showPermissionDialog() {
+        AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setTitle("Permissions Required")
+                .setMessage("In order for UPM to work properly, permissions for media access must be allowed.")
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        Uri uri = Uri.parse("package:"+BuildConfig.APPLICATION_ID);
+                        startActivity(
+                                new Intent(
+                                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                        uri
+                                ));
+
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        finish();
+                    }
+                }).create();
+        alertDialog.show();
     }
 
 }

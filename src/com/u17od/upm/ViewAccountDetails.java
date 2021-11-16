@@ -34,10 +34,12 @@ import android.view.WindowManager.LayoutParams;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.u17od.upm.database.AccountInformation;
 import com.u17od.upm.database.PasswordDatabase;
 
-public class ViewAccountDetails extends Activity {
+public class ViewAccountDetails extends AppCompatActivity {
 
     public static AccountInformation account;
 

@@ -8,4 +8,7 @@
     <ListPreference android:title="@string/shared_url_auth" android:key="shared_url_auth" android:summary="@string/shared_url_auth_summary"></ListPreference>
     <EditTextPreference android:key="trusted_hostname" android:title="@string/trusted_hostname" android:summary="@string/trusted_hostname_summary"></EditTextPreference>
   </PreferenceCategory>
+  <PreferenceCategory android:title="Fingerprint">
+    <CheckBoxPreference android:title="Enable Fingerprint" android:key="enable_finger"></CheckBoxPreference>
+  </PreferenceCategory>
 </PreferenceScreen> 

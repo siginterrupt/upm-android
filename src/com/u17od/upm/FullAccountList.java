@@ -30,25 +30,36 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.ClipboardManager;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.u17od.upm.database.AccountInformation;
+import com.u17od.upm.database.PasswordDatabase;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.List;
 
 
-public class FullAccountList extends AccountsList {
+public class FullAccountList extends AppCompatActivity /* AccountsList */ {
 
     private static final int CONFIRM_RESTORE_DIALOG = 0;
     private static final int CONFIRM_OVERWRITE_BACKUP_FILE = 1;
@@ -61,17 +72,115 @@ public class FullAccountList extends AccountsList {
 
     public static final String CERT_FILE_NAME = "upm.cer";
 
+    private ListView listView;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        registerForContextMenu(getListView());
+
+        listView = (ListView) findViewById(R.id.accounts_list);
+        registerForContextMenu(listView);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                TextView itemSelected = (TextView) view;
+                viewAccount(getPasswordDatabase().getAccount(itemSelected.getText().toString()));
+            }
+        });
         populateAccountList();
     }
 
     @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.account_context_menu, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        switch (item.getItemId()) {
+            case R.id.edit_account:
+                editAccount(getAccount(info.targetView));
+                return true;
+            case R.id.copy_username:
+                setClipboardText(getUsername(getAccount(info.targetView)));
+                return true;
+            case R.id.copy_password:
+                setClipboardText(getPassword(getAccount(info.targetView)));
+                return true;
+            case R.id.launch_url:
+                launchURL(getURL(getAccount(info.targetView)));
+                return true;
+        }
+        return super.onContextItemSelected(item);
+    }
+
+    private void setClipboardText(String text) {
+        ClipboardManager clipboardManager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        clipboardManager.setText(text);
+    }
+
+
+    private AccountInformation getAccount(View listviewItem) {
+        return getPasswordDatabase().getAccount(((TextView) listviewItem).getText().toString());
+    }
+
+    private String getUsername(AccountInformation account) {
+        return new String(account.getUserId());
+    }
+
+    private String getURL(AccountInformation account) {
+        return new String(account.getUrl());
+    }
+
+    private String getPassword(AccountInformation account) {
+        return new String(account.getPassword());
+    }
+    private void launchURL(String uriString) {
+        if (uriString == null || uriString.equals("")) {
+            UIUtilities.showToast(this, R.string.no_uri, true);
+        } else {
+            Uri uri = Uri.parse(uriString);
+            if (uri.getScheme() == null) {
+                uri = Uri.parse("http://" + uriString);
+            }
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            startActivity(intent);
+        }
+    }
+
+    private void viewAccount(AccountInformation ai) {
+        // Pass the AccountInformation object o the AccountDetails Activity by
+        // way of a static variable on that class. I really don't like this but
+        // it seems like the best way of doing it
+        // @see http://developer.android.com/guide/appendix/faq/framework.html#3
+        ViewAccountDetails.account = ai;
+
+        Intent i = new Intent(FullAccountList.this, ViewAccountDetails.class);
+        startActivityForResult(i, ViewAccountDetails.VIEW_ACCOUNT_REQUEST_CODE);
+    }
+
+    private void editAccount(AccountInformation ai) {
+        if (Utilities.isSyncRequired(this)) {
+            UIUtilities.showToast(this, R.string.sync_required);
+        } else {
+            if (ai != null) {
+                Intent i = new Intent(FullAccountList.this, AddEditAccount.class);
+                i.putExtra(AddEditAccount.MODE, AddEditAccount.EDIT_MODE);
+                i.putExtra(AddEditAccount.ACCOUNT_TO_EDIT, ai.getAccountName());
+                startActivityForResult(i, AddEditAccount.EDIT_ACCOUNT_REQUEST_CODE);
+            }
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        switch(requestCode) {
+        super.onActivityResult(requestCode, resultCode, intent);
+        switch (requestCode) {
             case AddEditAccount.EDIT_ACCOUNT_REQUEST_CODE:
             case ViewAccountDetails.VIEW_ACCOUNT_REQUEST_CODE:
                 if (resultCode == AddEditAccount.EDIT_ACCOUNT_RESULT_CODE_TRUE) {
@@ -95,7 +204,8 @@ public class FullAccountList extends AccountsList {
             setResult(RESULT_ENTER_PW);
             finish();
         } else {
-            setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getPasswordDatabase().getAccountNames()));
+            listView.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getPasswordDatabase().getAccountNames()));
+//            setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getPasswordDatabase().getAccountNames()));
         }
     }
 
@@ -424,6 +534,10 @@ public class FullAccountList extends AccountsList {
                 os.close();
             }
         }
+    }
+
+    protected PasswordDatabase getPasswordDatabase() {
+        return ((UPMApplication) getApplication()).getPasswordDatabase();
     }
 
 }

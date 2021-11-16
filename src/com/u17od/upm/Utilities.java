@@ -21,15 +21,26 @@
 package com.u17od.upm;
 
 import java.io.File;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.provider.Settings;
+
+import androidx.annotation.NonNull;
 
 import com.dropbox.client2.session.AccessTokenPair;
 import com.u17od.upm.database.PasswordDatabase;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Utilities {
 
@@ -41,6 +52,7 @@ public class Utilities {
     public static final String DROPBOX_SECRET = "DROPBOX_SECRET";
     public static final String DROPBOX_DB_REV = "DROPBOX_DB_REV";
     public static final String DROPBOX_SELECTED_FILENAME = "DROPBOX_SELECTED_FILENAME";
+    public static final String FINGER_PASS = "FINGER_PASSWORD";
 
     public static class VERSION_CODES {
         public static final int HONEYCOMB = 11;
@@ -129,6 +141,7 @@ public class Utilities {
         return syncRequired;
     }
 
+
     public static AccessTokenPair getDropboxAccessTokenPair(Context context) {
         SharedPreferences settings =
             context.getSharedPreferences(DROPBOX_PREFS, Context.MODE_PRIVATE);
@@ -168,6 +181,54 @@ public class Utilities {
         SharedPreferences settings =
             context.getSharedPreferences(fileName, Context.MODE_PRIVATE);
         return settings.getString(keyName, null);
+    }
+
+    public static void savePassword(Activity context, String password) {
+        SharedPreferences settings = context.getSharedPreferences(Prefs.PREFS_NAME, Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putString(FINGER_PASS, password);
+        editor.commit();
+        return;
+    }
+
+
+    public static boolean isFingerprintEnabled(Activity activity) {
+        SharedPreferences settings = activity.getSharedPreferences(Prefs.PREFS_NAME, Activity.MODE_PRIVATE);
+        return settings.getBoolean(Prefs.PREF_FINGERPRINT, false);
+    }
+
+    @NonNull
+    public static String getPassword(Activity activity) {
+        String password = "";
+        SharedPreferences settings = activity.getSharedPreferences(Prefs.PREFS_NAME, Activity.MODE_PRIVATE);
+        try {
+            password = settings.getString(FINGER_PASS, "");
+            password = decrypt(password);
+        } catch (Exception e) {
+        }
+        return password;
+    }
+
+    private static final String ALGORITHM = "AES";
+    private static final String MODE = "AES/ECB/PKCS5Padding";
+//    private static final String IV = "abcdefgh";
+    private static final String KEY = Settings.Secure.ANDROID_ID;
+
+    public static  String encrypt(String value ) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(KEY.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(MODE);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec); // , new IvParameterSpec(IV.getBytes())
+        return cipher.doFinal(value.getBytes()).toString();
+//        return Base64.encodeToString(values, Base64.DEFAULT);
+    }
+
+    public static  String decrypt(String value) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+//        byte[] values = Base64.decode(value, Base64.DEFAULT);
+        byte[] values = value.getBytes();
+        SecretKeySpec secretKeySpec = new SecretKeySpec(KEY.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(MODE);
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec); //, new IvParameterSpec(IV.getBytes())
+        return new String(cipher.doFinal(values));
     }
 
 }

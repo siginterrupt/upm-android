@@ -24,7 +24,9 @@ import java.util.ArrayList;
 
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.os.Build;
 import android.os.Bundle;
+import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -33,6 +35,8 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.widget.CheckBox;
+import android.widget.Toast;
 
 import com.u17od.upm.database.PasswordDatabase;
 
@@ -44,6 +48,7 @@ public class Prefs extends PreferenceActivity implements OnPreferenceChangeListe
     // Configuration setting constants
     public static final String PREF_TRUSTED_HOSTNAME = "trustedHostname";
     public static final String SYNC_METHOD = "sync.method";
+    public static final String PREF_FINGERPRINT = "enable_finger";
 
     public static interface SyncMethod {
         public static final String DISABLED = "disabled";
@@ -57,10 +62,12 @@ public class Prefs extends PreferenceActivity implements OnPreferenceChangeListe
     private ListPreference sharedURLAuthPref;
     private EditTextPreference sharedURLPref;
     private EditTextPreference trustedHostnamePref;
+    private CheckBoxPreference enableFingerprint;
 
     private PasswordDatabase db;
     private String originalSyncMethod;
     private boolean saveRequired;
+    private boolean fingerCheckedAtStart = false;
 
     private String[] syncMethodValues = {
             SyncMethod.DISABLED, SyncMethod.DROPBOX, SyncMethod.HTTP
@@ -85,10 +92,17 @@ public class Prefs extends PreferenceActivity implements OnPreferenceChangeListe
         sharedURLAuthPref = (ListPreference) findPreference("shared_url_auth");
         sharedURLPref = (EditTextPreference) findPreference("shared_url");
         trustedHostnamePref = (EditTextPreference) findPreference("trusted_hostname");
+        enableFingerprint = (CheckBoxPreference) findPreference("enable_finger");
 
         sharedURLAuthPref.setOnPreferenceChangeListener(this);
         sharedURLPref.setOnPreferenceChangeListener(this);
         trustedHostnamePref.setOnPreferenceChangeListener(this);
+        enableFingerprint.setOnPreferenceChangeListener(this);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            enableFingerprint.setEnabled(false);
+            enableFingerprint.setChecked(false);
+        }
 
         // Populate the preferences
         db = ((UPMApplication) getApplication()).getPasswordDatabase();
@@ -139,6 +153,7 @@ public class Prefs extends PreferenceActivity implements OnPreferenceChangeListe
                 return true;
             }
         });
+        fingerCheckedAtStart = enableFingerprint.isChecked();
     }
 
     private void initialiseFields(String syncMethod) {
@@ -206,20 +221,25 @@ public class Prefs extends PreferenceActivity implements OnPreferenceChangeListe
     protected void onStop(){
         super.onStop();
 
-       // We need an Editor object to make preference changes.
-       // All objects are from android.context.Context
-       SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-       SharedPreferences.Editor editor = settings.edit();
-       editor.putString(PREF_TRUSTED_HOSTNAME, trustedHostnamePref.getText());
-       editor.putString(SYNC_METHOD, syncMethodPreference.getValue());
+        // We need an Editor object to make preference changes.
+        // All objects are from android.context.Context
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putString(PREF_TRUSTED_HOSTNAME, trustedHostnamePref.getText());
+        editor.putString(SYNC_METHOD, syncMethodPreference.getValue());
+        editor.putBoolean(PREF_FINGERPRINT, enableFingerprint.isChecked());
 
-       // Commit the edits!
-       editor.commit();
+        // Commit the edits!
+        editor.commit();
 
-       // Ask the BackupManager to backup the database using
-       // Google's cloud backup service.
-       Log.i("Prefs", "Calling BackupManager().dataChanged()");
-       getUPMApplication().getBackupManager().dataChanged();
+        // Ask the BackupManager to backup the database using
+        // Google's cloud backup service.
+        Log.i("Prefs", "Calling BackupManager().dataChanged()");
+        getUPMApplication().getBackupManager().dataChanged();
+
+        if(fingerCheckedAtStart == false && enableFingerprint.isChecked()) {
+            Toast.makeText(this, "You will need to restart UPM and enter password to enable biometric recognition.", Toast.LENGTH_LONG).show();
+        }
      }
 
 }
